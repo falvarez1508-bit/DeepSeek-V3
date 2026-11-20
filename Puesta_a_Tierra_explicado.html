@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puesta a tierra: cómo llegar a menos de 5 Ω</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --ink:#1b2430; --muted:#5b6675; --line:#dde2e9;
+  --accent:#1f6feb; --ok:#1a7f4b; --bad:#c62828; --soil:#c9a46c; --soil2:#b38b4f; --metal:#8a94a3; --copper:#c9772b; --limit:#c62828;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#10151c;--card:#171e28;--ink:#e8edf3;--muted:#9aa6b6;--line:#2a3442;--accent:#5aa2ff;--ok:#4cc38a;--bad:#ff6b6b;--soil:#6b5230;--soil2:#57421f;--metal:#aab4c3;--copper:#e29a55;--limit:#ff6b6b}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.9rem;margin:0 0 6px}
+h2{font-size:1.3rem;margin:36px 0 10px}
+h3{font-size:1.05rem;margin:0 0 6px}
+p{margin:8px 0}
+.lead{color:var(--muted);max-width:70ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:14px 0}
+.grid{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.eq{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.88rem;overflow-x:auto;white-space:pre}
+.tag{display:inline-block;font-size:.78rem;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--ink);font:12px system-ui,sans-serif}
+svg .m{fill:var(--muted)}
+.ctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+input[type=range]{flex:1;min-width:200px;accent-color:var(--accent)}
+.big{font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+.step{display:flex;gap:12px}.step>b{flex:0 0 28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Puesta a tierra: cómo bajar de 5 Ω</h1>
+<p class="lead">Una puesta a tierra es el camino por donde la corriente de falla se disipa en el suelo. Mientras más bajo es el valor de resistencia (R), más fácil se disipa y más seguro es el sistema. Aquí se explican los 7 casos del Excel, con un suelo de <b>ρ = 110 Ω·m</b>, y qué hay que construir para que R no pase de <b>5 Ω</b>.</p>
+
+<h2>1. La idea en un dibujo</h2>
+<div class="card">
+<svg viewBox="0 0 700 250" role="img" aria-label="Corriente de falla bajando por una varilla y dispersándose en el suelo">
+  <rect x="0" y="70" width="700" height="180" fill="var(--soil)"/>
+  <rect x="0" y="70" width="700" height="6" fill="var(--soil2)"/>
+  <rect x="338" y="40" width="10" height="170" fill="var(--metal)"/>
+  <rect x="320" y="30" width="46" height="14" rx="3" fill="var(--copper)"/>
+  <g fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4">
+    <path d="M343 205 Q 260 215 190 150"/><path d="M343 205 Q 430 215 500 150"/>
+    <path d="M343 190 Q 230 190 150 110"/><path d="M343 190 Q 460 190 540 110"/>
+    <path d="M343 120 Q 280 120 240 95"/><path d="M343 120 Q 410 120 450 95"/>
+  </g>
+  <text x="372" y="26">Falla / descarga</text>
+  <text x="372" y="140" class="m" style="fill:#fff">Varilla de largo Le</text>
+  <text x="20" y="100" style="fill:#fff">Suelo con resistividad ρ (Ω·m)</text>
+  <text x="20" y="232" style="fill:#fff">La corriente se abre en abanico: cerca de la varilla el camino es angosto (mucha resistencia), lejos es ancho (poca).</text>
+</svg>
+<p><b>Tres palancas</b> para bajar R: (1) bajar ρ (mejorar el suelo), (2) alargar o multiplicar electrodos, (3) agrandar el área que cubre la malla. R es <b>directamente proporcional a ρ</b>: si el suelo se seca y ρ sube 10 %, R sube 10 %.</p>
+</div>
+
+<h2>2. Los 7 casos: dato original vs. diseño resuelto</h2>
+<p class="lead">Con los datos de ejemplo del Excel (ρ = 7,25 Ω·m) todos los casos ya pasaban. Con tu suelo real de 110 Ω·m <b>ninguno</b> pasa, así que se dimensionó cada uno hasta quedar bajo 5 Ω.</p>
+<div class="card">
+<div id="barchart"></div>
+<div class="ctrl" style="margin-top:12px">
+  <label for="rho"><b>ρ del suelo:</b> <span id="rhoVal" class="big">110</span> Ω·m</label>
+  <input id="rho" type="range" min="40" max="180" step="1" value="110">
+</div>
+<p class="m" style="color:var(--muted);font-size:.9rem">Mueve el deslizador para simular un suelo más seco (ρ mayor). Las barras son los diseños resueltos; la línea roja es el límite de 5 Ω. Mira qué diseño falla primero.</p>
+</div>
+
+<div class="card"><table id="tbl"></table></div>
+
+<h2>3. Caso por caso</h2>
+<div id="cases"></div>
+
+<h2>4. Por qué agregar varillas ayuda poco y la malla ayuda mucho</h2>
+<div class="grid">
+  <div class="card"><h3>Varilla única: rendimientos decrecientes</h3><div id="chartRod"></div>
+  <p>Duplicar el largo no divide R por 2. Para bajar de 44 Ω a 5 Ω con 1 varilla hace falta <b>≈ 30 m</b>, impráctico con varilla corta de 2,4 a 3 m.</p></div>
+  <div class="card"><h3>Malla cuadrada: tamaño del lado</h3><div id="chartMesh"></div>
+  <p>En una malla, lo que más pesa es el <b>área</b> (√A en el denominador). Por eso pasar de 4 m a 14,5 m de lado baja R de 14 Ω a 4,7 Ω.</p></div>
+</div>
+
+<h2>5. Cómo se calcula (resumen)</h2>
+<div class="card">
+<div class="step"><b>1</b><p><b>Varilla sola:</b> la corriente sale de un cilindro vertical. Mientras más largo (Le) y más delgado el suelo resistivo cerca, menos R.</p></div>
+<div class="step"><b>2</b><p><b>Dos varillas:</b> casi se reparte la corriente, pero si están cerca se estorban entre sí (efecto de proximidad). Por eso hay dos fórmulas: separación Ls mayor o menor que Le.</p></div>
+<div class="step"><b>3</b><p><b>Malla (Sverak):</b> trata el conjunto como una placa enterrada de área A con conductor total LT. Las varillas de las esquinas aportan LT extra.</p></div>
+<div class="step"><b>4</b><p><b>Malla + varillas (Schwarz):</b> R1 (solo malla) y R2 (solo varillas) quedan en paralelo, pero se acoplan con Rm. El resultado es R = (R1·R2 − Rm²)/(R1 + R2 − 2Rm), siempre menor que R1 y R2.</p></div>
+</div>
+
+<h2>6. Qué verificar en terreno</h2>
+<div class="card">
+<ul>
+<li>El 5 Ω debe cumplirse con el <b>ρ del peor caso</b> (suelo seco), no solo con el medido el día de la prueba. Estos diseños tienen ~5 % de margen: ρ máximo ≈ 116 Ω·m.</li>
+<li>Mide la puesta a tierra terminada (método de caída de potencial). Los modelos son aproximaciones.</li>
+<li>Si el suelo mide más, agranda la malla antes de agregar varillas: es la palanca más eficaz.</li>
+</ul>
+</div>
+
+</div>
+
+<script>
+const PI=Math.PI, ln=Math.log, sq=Math.sqrt;
+const D=0.015875;
+const F={
+ rod:(p,rho)=>rho/(2*PI*p.Le)*(ln(8*p.Le/D)-1),
+ two:(p,rho)=>rho/(4*PI*p.Le)*(ln(8*p.Le/D)-1)+rho/(4*PI*p.Ls)*(1-p.Le**2/(3*p.Ls**2)+2*p.Le**4/(5*p.Ls**4)),
+ twoS:(p,rho)=>rho/(4*PI*p.Le)*(ln(8*p.Le/D)+ln(4*p.Le/p.Ls)-2+p.Ls/(2*p.Le)-p.Ls**2/(16*p.Le**2)+p.Ls**4/(512*p.Le**4)),
+ m1:(p,rho)=>rho*(1/(4*p.L1+p.n*p.Le)+1/sq(20*p.L1**2)*(1+1/(1+p.hc*sq(20/p.L1**2)))),
+ m4:(p,rho)=>rho*(1/(6*p.L1+p.n*p.Le)+1/sq(20*p.L1**2)*(1+1/(1+p.hc*sq(20/p.L1**2)))),
+ rect:(p,rho)=>{
+   const LT=p.L1n*p.L1+p.L2n*p.L2,K1=-0.05*p.L2/p.L1+1.2,K2=0.1*p.L2/p.L1+4.68,A=sq(p.L1*p.L2);
+   const R1=rho/(PI*LT)*(ln(2*LT/sq(p.d*p.hc))+K1*LT/A-K2);
+   const R2=rho/(2*PI*p.n*p.Le)*(ln(8*p.Le/D)-1+(2*K1*p.Le/A)*(sq(p.n)-1)**2);
+   const Rm=rho/(PI*LT)*(ln(2*LT/p.Le)+K1*LT/A-K2+1);
+   return (R1*R2-Rm**2)/(R1+R2-2*Rm);
+ }
+};
+const cases=[
+ {id:'1',name:'1. Una varilla',f:'rod',orig:{Le:2.4},sol:{Le:32},
+  eq:'R = ρ/(2π·Le) · [ ln(8·Le/D) − 1 ]',
+  txt:'Una sola varilla de 5/8". Con ρ=110 hace falta una varilla de unos 32 m (en la práctica, varillas empalmadas o perforación profunda).',
+  draw:'rod'},
+ {id:'2',name:'2. Dos varillas (Ls > Le)',f:'two',orig:{Le:2.4,Ls:6},sol:{Le:16,Ls:32},
+  eq:'R = ρ/(4π·Le)·[ln(8·Le/D) − 1] + ρ/(4π·Ls)·[1 − Le²/(3·Ls²) + 2·Le⁴/(5·Ls⁴)]',
+  txt:'Dos varillas separadas más que su largo. Se estorban poco, por eso cada una puede ser la mitad de larga que en el caso 1.',
+  draw:'two'},
+ {id:'3',name:'3. Dos varillas (Ls < Le)',f:'twoS',orig:{Le:2.4,Ls:1.5},sol:{Le:17,Ls:8.5},
+  eq:'R = ρ/(4π·Le)·[ln(8·Le/D) + ln(4·Le/Ls) − 2 + Ls/(2·Le) − Ls²/(16·Le²) + Ls⁴/(512·Le⁴)]',
+  txt:'Dos varillas muy juntas (separación menor que su largo). Se estorban más, así que se necesita algo más de largo que en el caso 2.',
+  draw:'two'},
+ {id:'4',name:'4. Malla de 1 cuadrado',f:'m1',orig:{Le:2.4,n:4,L1:4,hc:0.5},sol:{Le:3,n:4,L1:14.5,hc:0.5},
+  eq:'R = ρ · [ 1/LT + 1/√(20·A) · ( 1 + 1/(1 + hc·√(20/A)) ) ]   con LT = 4·L1 + n·Le,  A = L1²',
+  txt:'Un cuadrado de conductor enterrado más 4 varillas en las esquinas. El área manda: pasa de 4 m a 14,5 m de lado.',
+  draw:'sq1'},
+ {id:'5',name:'5. Malla de 4 cuadrados',f:'m4',orig:{Le:2.4,n:4,L1:4,hc:0.5},sol:{Le:3,n:4,L1:13,hc:0.5},
+  eq:'R = ρ · [ 1/LT + 1/√(20·A) · ( 1 + 1/(1 + hc·√(20/A)) ) ]   con LT = 6·L1 + n·Le,  A = L1²',
+  txt:'Mismo cuadrado exterior pero dividido en 4 cuadros: más conductor (6·L1) en la misma área, así que alcanza con 13 m de lado.',
+  draw:'sq4'},
+ {id:'6',name:'6. Malla rectangular 3 espacios',f:'rect',
+  orig:{Le:2.4,n:3,L1:4,L2:6,d:0.00996,hc:0.5,L1n:3,L2n:2},sol:{Le:3,n:6,L1:9,L2:13.5,d:0.00996,hc:0.6,L1n:3,L2n:2},
+  eq:'R = (R1·R2 − Rm²)/(R1 + R2 − 2·Rm)',
+  txt:'Rectángulo L1×L2 con 3 conductores de L1 y 2 de L2 y 6 varillas. Se pasó de 4×6 m a 9×13,5 m.',
+  draw:'rect'},
+ {id:'7',name:'7. Malla rectangular (datos de tu imagen)',f:'rect',
+  orig:{Le:3,n:6,L1:10,L2:12,d:0.00654,hc:0.6,L1n:4,L2n:2},sol:{Le:3,n:6,L1:10,L2:12,d:0.00654,hc:0.6,L1n:4,L2n:2},
+  eq:'LT = L1n·L1 + L2n·L2  (4×10 + 2×12 = 64 m)',
+  txt:'Este es el diseño de la imagen: 10×12 m, 4 conductores de L1 y 2 de L2, 6 varillas de 3 m. Ya cumple sin cambios: R = 4,73 Ω.',
+  draw:'rect'}
+];
+const RHO0=110, LIM=5;
+const fmt=(x,d=2)=>x.toLocaleString('es-CL',{minimumFractionDigits:d,maximumFractionDigits:d});
+cases.forEach(c=>{c.R0=F[c.f](c.orig,RHO0); c.R=F[c.f](c.sol,RHO0); c.Rfile=F[c.f](c.orig,7.25);});
+
+/* tabla */
+document.getElementById('tbl').innerHTML=
+ '<tr><th>Caso</th><th class="n">R con datos originales del Excel (ρ=7,25)</th><th class="n">R original con ρ=110</th><th class="n">R diseño resuelto (ρ=110)</th><th>Estado</th></tr>'+
+ cases.map(c=>`<tr><td>${c.name}</td><td class="n">${fmt(c.Rfile)} Ω</td><td class="n ${c.R0>LIM?'bad':'ok'}">${fmt(c.R0)} Ω</td><td class="n"><b>${fmt(c.R)} Ω</b></td><td class="${c.R<=LIM?'ok':'bad'}">${c.R<=LIM?'CUMPLE':'NO CUMPLE'}</td></tr>`).join('');
+
+/* gráfico de barras interactivo */
+const bar=document.getElementById('barchart');
+function drawBars(){
+  const rho=+document.getElementById('rho').value;
+  document.getElementById('rhoVal').textContent=rho;
+  const W=700,H=290,L=40,B=60,T=16,maxY=Math.max(8,...cases.map(c=>F[c.f](c.sol,rho)))*1.1;
+  const y=v=>T+(H-T-B)*(1-v/maxY);
+  const bw=(W-L-10)/cases.length;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Resistencia de cada diseño frente al límite de 5 ohm">`;
+  for(let g=0;g<=maxY;g+=2){s+=`<line x1="${L}" x2="${W}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)"/><text x="${L-6}" y="${y(g)+4}" text-anchor="end" class="m">${g}</text>`;}
+  cases.forEach((c,i)=>{
+    const r=F[c.f](c.sol,rho),x=L+i*bw+bw*0.18,w=bw*0.64,okc=r<=LIM;
+    s+=`<rect x="${x}" y="${y(r)}" width="${w}" height="${y(0)-y(r)}" rx="3" fill="${okc?'var(--ok)':'var(--bad)'}"/>`;
+    s+=`<text x="${x+w/2}" y="${y(r)-5}" text-anchor="middle" style="font-weight:700">${fmt(r)}</text>`;
+    s+=`<text x="${x+w/2}" y="${y(0)+16}" text-anchor="middle">Caso ${c.id}</text>`;
+  });
+  s+=`<line x1="${L}" x2="${W}" y1="${y(LIM)}" y2="${y(LIM)}" stroke="var(--limit)" stroke-width="2" stroke-dasharray="6 4"/>`;
+  s+=`<text x="${W-4}" y="${y(LIM)-6}" text-anchor="end" style="fill:var(--limit);font-weight:700">Límite 5 Ω</text>`;
+  s+=`<text x="${L}" y="${H-14}" class="m">R (Ω) · verde = cumple, rojo = no cumple</text></svg>`;
+  bar.innerHTML=s;
+}
+document.getElementById('rho').addEventListener('input',drawBars); drawBars();
+
+/* dibujos por caso */
+const soil='<rect x="0" y="40" width="300" height="110" fill="var(--soil)"/>';
+const draws={
+ rod:()=>`<svg viewBox="0 0 300 160">${soil}<rect x="146" y="20" width="8" height="125" fill="var(--metal)"/><text x="160" y="90" style="fill:#fff">Le</text><line x1="140" y1="42" x2="140" y2="145" stroke="#fff" stroke-dasharray="3 3"/></svg>`,
+ two:()=>`<svg viewBox="0 0 300 160">${soil}<rect x="86" y="20" width="8" height="115" fill="var(--metal)"/><rect x="206" y="20" width="8" height="115" fill="var(--metal)"/><line x1="94" y1="50" x2="206" y2="50" stroke="var(--copper)" stroke-width="3"/><text x="140" y="44" style="fill:#fff">Ls</text><text x="100" y="105" style="fill:#fff">Le</text></svg>`,
+ sq1:()=>`<svg viewBox="0 0 300 160"><rect width="300" height="160" fill="var(--soil)"/><rect x="85" y="25" width="130" height="110" fill="none" stroke="var(--copper)" stroke-width="3"/>${[[85,25],[215,25],[85,135],[215,135]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="var(--metal)"/>`).join('')}<text x="130" y="85" style="fill:#fff">A = L1²</text><text x="140" y="18" style="fill:#fff">L1</text></svg>`,
+ sq4:()=>`<svg viewBox="0 0 300 160"><rect width="300" height="160" fill="var(--soil)"/><rect x="85" y="25" width="130" height="110" fill="none" stroke="var(--copper)" stroke-width="3"/><line x1="150" y1="25" x2="150" y2="135" stroke="var(--copper)" stroke-width="3"/><line x1="85" y1="80" x2="215" y2="80" stroke="var(--copper)" stroke-width="3"/>${[[85,25],[215,25],[85,135],[215,135]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="var(--metal)"/>`).join('')}<text x="140" y="18" style="fill:#fff">L1</text></svg>`,
+ rect:()=>`<svg viewBox="0 0 300 160"><rect width="300" height="160" fill="var(--soil)"/><rect x="60" y="30" width="180" height="100" fill="none" stroke="var(--copper)" stroke-width="3"/><line x1="120" y1="30" x2="120" y2="130" stroke="var(--copper)" stroke-width="3"/><line x1="180" y1="30" x2="180" y2="130" stroke="var(--copper)" stroke-width="3"/>${[[60,30],[240,30],[60,130],[240,130],[150,30],[150,130]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="var(--metal)"/>`).join('')}<text x="140" y="22" style="fill:#fff">L2 (lado largo)</text><text x="66" y="84" style="fill:#fff">L1</text></svg>`
+};
+const lab={Le:'Le (m)',Ls:'Ls (m)',n:'n varillas',L1:'L1 (m)',L2:'L2 (m)',d:'d conductor (m)',hc:'hc (m)',L1n:'L1n',L2n:'L2n'};
+document.getElementById('cases').innerHTML=cases.map(c=>{
+  const keys=Object.keys(c.sol);
+  return `<div class="card"><h3>${c.name} <span class="tag ${c.R<=LIM?'ok':'bad'}">${fmt(c.R)} Ω · ${c.R<=LIM?'cumple':'no cumple'}</span></h3>
+  <div class="grid"><div>${draws[c.draw]()}</div>
+  <div><p>${c.txt}</p>
+  <table><tr><th>Dato</th><th class="n">Original</th><th class="n">Resuelto</th></tr>
+  ${keys.map(k=>`<tr><td>${lab[k]}</td><td class="n">${c.orig[k]}</td><td class="n"><b>${c.sol[k]}</b></td></tr>`).join('')}
+  <tr><td>ρ (Ω·m)</td><td class="n">7,25 → 110</td><td class="n"><b>110</b></td></tr></table></div></div>
+  <div class="eq">${c.eq}</div>
+  <p>Margen: <b>${fmt((LIM-c.R)/LIM*100,1)} %</b> · ρ máximo admisible: <b>${fmt(RHO0*LIM/c.R,1)} Ω·m</b></p></div>`;
+}).join('');
+
+/* curvas */
+function line(el,pts,xlab,xfmt){
+  const W=340,H=220,L=40,B=34,T=10,R=10;
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y1=Math.max(...ys,LIM*1.2);
+  const X=v=>L+(W-L-R)*(v-x0)/(x1-x0),Y=v=>T+(H-T-B)*(1-v/y1);
+  let s=`<svg viewBox="0 0 ${W} ${H}">`;
+  for(let g=0;g<=y1;g+=Math.ceil(y1/5/5)*5||5){s+=`<line x1="${L}" x2="${W-R}" y1="${Y(g)}" y2="${Y(g)}" stroke="var(--line)"/><text x="${L-5}" y="${Y(g)+4}" text-anchor="end" class="m">${g}</text>`;}
+  s+=`<polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${pts.map(p=>X(p[0])+','+Y(p[1])).join(' ')}"/>`;
+  s+=`<line x1="${L}" x2="${W-R}" y1="${Y(LIM)}" y2="${Y(LIM)}" stroke="var(--limit)" stroke-width="2" stroke-dasharray="6 4"/><text x="${W-R}" y="${Y(LIM)-5}" text-anchor="end" style="fill:var(--limit);font-weight:700">5 Ω</text>`;
+  s+=`<text x="${(L+W)/2}" y="${H-6}" text-anchor="middle" class="m">${xlab}</text></svg>`;
+  el.innerHTML=s;
+}
+const rodPts=[],meshPts=[];
+for(let L=2;L<=40;L+=1)rodPts.push([L,F.rod({Le:L},110)]);
+for(let a=4;a<=20;a+=0.5)meshPts.push([a,F.m1({Le:3,n:4,L1:a,hc:0.5},110)]);
+line(document.getElementById('chartRod'),rodPts,'Largo de la varilla Le (m)');
+line(document.getElementById('chartMesh'),meshPts,'Lado de la malla L1 (m)');
+</script>
+</body>
+</html>
